@@ -1,0 +1,36 @@
+package br.intelidata.mapfre.rest.entity;
+
+import java.io.Serializable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+
+import lombok.Data;
+
+@Entity
+@Table(name = "proceso", schema = "bddespifd")
+@Data
+public class Proceso implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	@Id
+	@Column(name = "idproceso")
+	private String idProc;
+	@Column(name = "iddocumento")
+	private String idDoc;
+	@Column(name = "correocliente")
+	private String correoCli;
+	@Column(name = "cpf")
+	private String cpf;
+	@Column(name = "idcertificado")
+	private String idCertificado;
+	@OneToOne
+	@JoinColumn(name = "idestadoproceso")
+	private EstadoProceso estado;
+}

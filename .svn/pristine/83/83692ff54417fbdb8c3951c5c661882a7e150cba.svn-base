@@ -1,0 +1,134 @@
+package br.intelidata.mapfre.rest.service.imp;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import br.intelidata.mapfre.rest.domain.detalle.DetalleRequest;
+import br.intelidata.mapfre.rest.domain.detalle.DetalleResponse;
+import br.intelidata.mapfre.rest.domain.firma.FirmaRequest;
+import br.intelidata.mapfre.rest.domain.firma.FirmaResponse;
+import br.intelidata.mapfre.rest.domain.update.UpdateResponse;
+import br.intelidata.mapfre.rest.entity.CargaEtl;
+import br.intelidata.mapfre.rest.entity.Proceso;
+import br.intelidata.mapfre.rest.entity.Visualizacion;
+import br.intelidata.mapfre.rest.repository.CargaEtlRep;
+import br.intelidata.mapfre.rest.repository.ProcesoRep;
+import br.intelidata.mapfre.rest.repository.VisualizacionRep;
+import br.intelidata.mapfre.rest.service.ApiRestService;
+
+@Service
+public class ApiRestServiceImp implements ApiRestService {
+
+	/*
+	 * @Value("${datafile.path}") String fileName;
+	 */
+
+	@Autowired
+	CargaEtl carga;
+
+	@Autowired
+	CargaEtlRep cargaRep;
+
+	@Autowired
+	ProcesoRep procRep;
+
+	@Autowired
+	VisualizacionRep visualizacionRep;
+
+	@Override
+	public FirmaResponse insertData(FirmaRequest request) {
+		/* Datos extraidos Request Json */
+		for (int i = 0; i < request.getDestinatario().size(); i++) { /* Iteracion por cantidad de destinatarios */
+			/* Insercion de datos a objeto para cargar en BD (tabla cargaetl) */
+			carga.setArchivoPdf(request.getDocumentoB64().getBytes()); // ArchivoPDF
+			carga.setIdDoc(request.getDocumentoId().concat("_").concat(request.getDestinatario().get(i).getCpf_cnpj())); // IdDocumento
+			carga.setDescDoc(request.getNombre()); // DescripcionDocumento
+			carga.setProdId(request.getProducto()); // ProductoID
+			carga.setFechaCreacion(request.getFechaCreacion()); // FechaCreacion
+			/* Validacion cantidad de variables template */
+			if (request.getVariablesTemplate() != null) {
+				carga.setAsunto(request.getVariablesTemplate().get(i).getVar()); // Asunto
+				carga.setMensaje(request.getVariablesTemplate().get(i).getValor()); // Mensaje
+			} else {
+				carga.setAsunto("sinAsunto"); // Asunto
+				carga.setMensaje("sinMensaje"); // Mensaje
+			}
+			/* Validacion cantidad de destinatarios */
+			if (request.getDestinatario() != null) {
+				carga.setNomCli(request.getDestinatario().get(i).getNombre()); // NombreCliente
+				carga.setRutCli(request.getDestinatario().get(i).getCpf_cnpj()); // RutCliente
+				carga.setCorreoCli(request.getDestinatario().get(i).getEmail()); // CorreoCliente
+				carga.setIdTipoCli(request.getDestinatario().get(i).getTipoSignatario()); // IdTipoCliente
+			} else {
+				carga.setNomCli("sinNomCli"); // NombreCliente
+				carga.setRutCli("sinRutCli"); // RutCliente
+				carga.setCorreoCli("sinCorreoCli"); // CorreoCliente
+				carga.setIdTipoCli("sinIdTipoCli"); // IdTipoCliente
+			}
+			/* Validacion cantidad de remitentes */
+			if (request.getRemitente() != null) {
+				carga.setNomCorredor(request.getRemitente().get(0).getNombre()); // NombreCorredor
+				carga.setCorreoCorredor(request.getRemitente().get(0).getEmail()); // CorreoCorredor
+				carga.setLogoCorredor(request.getRemitente().get(0).getLogoCorretor()); // LogoCorredor
+			} else {
+				carga.setNomCorredor("sinNomCorredor"); // NombreCorredor
+				carga.setCorreoCorredor("sinCorreoCorredor"); // CorreoCorredor
+				carga.setLogoCorredor(new byte[0]); // LogoCorredor
+			}
+
+			/* Datos NOT Null */
+			carga.setCodCarga("0"); // CodigoCarga
+			carga.setIdProceso("0"); // IdProceso
+			carga.setIdCli("0"); // IdCliente
+			carga.setIdCom("0"); // IDComunicacion
+			carga.setIdContacto("0"); // IdContacto
+			carga.setIdProcFirma("0"); // IdProcesoFirma
+			carga.setIdCorredor("0"); // IdCorredor
+			carga.setIdVv("0"); // IdVV
+			carga.setProcesadoId("0"); // ProcesadoID
+
+			/* Insert a tabla cargaetl */
+			cargaRep.save(carga);
+		}
+		return new FirmaResponse(request.getDocumentoId(), HttpStatus.OK);
+	}
+
+	@Override
+	public List<Proceso> getProcesos() {
+		return procRep.findAll();
+	}
+
+	@Override
+	public Optional<Proceso> getProceso(String id) {
+		return procRep.findById(id);
+	}
+
+	@Override
+	public UpdateResponse updateEstado(String id, String estado) {
+		/* Update a tabla proceso */
+		Optional<Proceso> procOptional = procRep.findById(id);
+		if (!procOptional.isPresent()) {
+			return new UpdateResponse(id, HttpStatus.NO_CONTENT);
+		}
+		procRep.updateEstado(id, estado);
+		return new UpdateResponse(id, HttpStatus.OK);
+	}
+
+	@Override
+	public DetalleResponse getDetalle(DetalleRequest request) {
+		/* Select a tabla visualizacion */
+		Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+		Page<Visualizacion> contenido;
+		contenido = visualizacionRep.detalle(pageable);
+		List<Visualizacion> listVisualizacion = contenido.getContent();
+		Long cantidad = contenido.getTotalElements();
+		return new DetalleResponse(cantidad, listVisualizacion);
+	}
+}

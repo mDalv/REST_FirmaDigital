@@ -1,0 +1,97 @@
+package br.intelidata.mapfre.rest.controller;
+
+import java.util.List;
+import java.util.Optional;
+
+import javax.validation.Valid;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import br.intelidata.mapfre.rest.domain.detalle.DetalleRequest;
+import br.intelidata.mapfre.rest.domain.detalle.DetalleResponse;
+import br.intelidata.mapfre.rest.domain.estado.EstadoDocumentoResponse;
+import br.intelidata.mapfre.rest.domain.firma.FirmaRequest;
+import br.intelidata.mapfre.rest.domain.firma.FirmaResponse;
+import br.intelidata.mapfre.rest.domain.update.UpdateResponse;
+import br.intelidata.mapfre.rest.entity.Proceso;
+import br.intelidata.mapfre.rest.service.ApiRestService;
+
+@RestController
+//@CrossOrigin(origins = "http://localhost:4205")
+@Validated
+@CrossOrigin(origins = "*")
+public class ApiRestController {
+
+	private static final Logger LOGGER = LogManager.getLogger(ApiRestController.class);
+
+	@Autowired
+	ApiRestService arp;
+
+	/*
+	 * Metodo que recibe datos para iniciar proceso de firma y entrega la respuesta
+	 * considerando si la peticion es valida
+	 */
+	@PostMapping(path = "firma", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody FirmaResponse firmaDocumento(@Valid @RequestBody FirmaRequest request) {
+		LOGGER.info("/firma");
+		return arp.insertData(request);
+	}
+
+	/*
+	 * Metodo que recibe datos para paginacion y entrega un listado (tabla
+	 * visualizacion)
+	 */
+	@PostMapping(path = "detalle", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody DetalleResponse getDetalle(@RequestBody DetalleRequest request) {
+		LOGGER.info("/detalle");
+		return arp.getDetalle(request);
+	}
+
+	/* Metodo que entrega listado de procesos (tabla proceso) */
+	@RequestMapping(path = "procesos", produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody List<Proceso> getProcesos() {
+		LOGGER.info("/procesos");
+		return arp.getProcesos();
+	}
+
+	/*
+	 * Metodo que entrega datos de proceso mediante id Visual Vault (tabla proceso)
+	 */
+	@RequestMapping(path = "proceso/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody Optional<Proceso> getProceso(@PathVariable String id) {
+		LOGGER.info("/proceso/{}", id);
+		return arp.getProceso(id);
+	}
+
+	/* Metodo que actualiza estado del proceso (tabla proceso) */
+	@PutMapping(path = "update/{id}/{estado}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody UpdateResponse updateProceso(@PathVariable String id, @PathVariable String estado) {
+		LOGGER.info("/update/{}/{}", id, estado);
+		return arp.updateEstado(id, estado);
+	}
+
+	@RequestMapping(path = "estado/{idDoc}/{cpf}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody EstadoDocumentoResponse getEstadoDocumento(@PathVariable String idDoc,
+			@PathVariable String cpf) {
+		LOGGER.info("/estado/{}/{}", idDoc, cpf);
+		return arp.getEstadoDocumento(idDoc, cpf);
+	}
+
+	@GetMapping("hello")
+	public String hello() {
+		return "hello azure!";
+	}
+}

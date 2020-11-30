@@ -1,0 +1,8 @@
+package br.intelidata.mapfre.rest.util;
+
+public final class Constants {
+	public static final String ERROR_INTERNO_DEL_SERVIDOR = "Error Interno del Servidor";
+
+	private Constants() {
+	}
+}
